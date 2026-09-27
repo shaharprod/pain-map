@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מפת כאבים — מה כואב ללקוחות באזור</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Secular+One&family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eef1f4; --sheet:#ffffff; --ink:#1e2733; --muted:#5b6675; --line:#d5dbe3;
+  --pain:#b4233c; --pain-soft:#f6dde2; --fix:#0f766e; --fix-soft:#d7efec; --warn:#8a5a00; --warn-soft:#fbefd2;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:17px/1.6 Assistant,"Segoe UI",Arial,sans-serif;
+  padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+h1,h2,h3{font-family:"Secular One",Assistant,Arial,sans-serif;font-weight:400;margin:0}
+a{color:inherit}
+button,select,input{font:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+header.top h1{font-size:clamp(28px,5vw,44px);line-height:1.1}
+header.top p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.links a{color:var(--muted);font-size:15px}
+.panel{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);min-width:150px;flex:1}
+select,input[type=number]{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.btn{padding:9px 14px;border-radius:9px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--fix);outline-offset:2px}
+.status{font-size:15px;color:var(--muted);margin-top:8px}
+.note{padding:10px 12px;border-radius:9px;font-size:15px;margin-top:10px}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--pain-soft);color:var(--pain)}
+.note.ok{background:var(--fix-soft);color:var(--fix)}
+.facts{display:flex;flex-wrap:wrap;gap:22px;margin:4px 0 2px}
+.facts div{font-size:14px;color:var(--muted)}
+.facts b{display:block;font-size:26px;color:var(--ink);font-family:"Secular One",Assistant,sans-serif;font-weight:400}
+
+/* the memorable thing: the pain ladder */
+.ladder{display:flex;flex-direction:column;gap:10px}
+details.pain{background:var(--sheet);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+details.pain summary{list-style:none;cursor:pointer;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center}
+details.pain summary::-webkit-details-marker{display:none}
+.pname{font-family:"Secular One",Assistant,sans-serif;font-size:21px}
+.pcount{font-size:15px;color:var(--muted)}
+.bar{grid-column:1/-1;height:12px;background:var(--paper);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pain);border-radius:6px 0 0 6px;transform-origin:right;animation:grow .9s ease-out both}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.bar i{animation:none}}
+.pbody{padding:0 16px 16px;border-top:1px solid var(--line)}
+.offer{margin:12px 0;padding:10px 12px;background:var(--fix-soft);color:var(--fix);border-radius:9px}
+.offer.none{background:var(--paper);color:var(--muted)}
+.bizlist{font-size:15px;color:var(--muted);margin:8px 0}
+.quote{border-right:4px solid var(--pain);background:#fafbfc;padding:8px 12px;margin:8px 0;border-radius:6px}
+.quote .meta{font-size:13px;color:var(--muted)}
+.quote .meta a{color:var(--ink)}
+.more{font-size:14px;color:var(--muted)}
+#aiOut{white-space:pre-wrap}
+.hidden{display:none!important}
+footer{color:var(--muted);font-size:13px;margin-top:24px}
+@media (max-width:600px){body{font-size:16px}.facts b{font-size:22px}details.pain summary{grid-template-columns:1fr}#aiPanel h2{flex-basis:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>מפת כאבים</h1>
+      <p>מה הלקוחות מתלוננים עליו באזור שסרקת — מתוך ביקורות גוגל של העסקים ב-Leads Radar, מקובץ לנושאים, עם מה שאפשר להציע לכל כאב.</p>
+    </div>
+    <div class="links"><a href="../leads-radar/" target="_blank" rel="noopener">פתח את Leads Radar</a></div>
+  </header>
+
+  <section class="panel" aria-label="מקור הנתונים">
+    <div class="row">
+      <button class="btn" id="btnLoad">טען מ-Leads Radar</button>
+      <label class="btn ghost" for="fileIn" style="cursor:pointer">ייבוא קובץ JSON</label>
+      <input type="file" id="fileIn" accept=".json,application/json" class="hidden">
+      <button class="btn ghost" id="btnFill">השלם ביקורות חסרות</button>
+      <label class="f" style="min-width:110px;flex:0">עד כמה עסקים
+        <input type="number" id="fillMax" value="20" min="1" max="200">
+      </label>
+    </div>
+    <div class="status" id="status">עדיין לא נטענו נתונים.</div>
+    <div id="notes"></div>
+  </section>
+
+  <section class="panel hidden" id="filters" aria-label="סינון">
+    <div class="row">
+      <label class="f">עיר / אזור<select id="fCity"></select></label>
+      <label class="f">סוג עסק<select id="fType"></select></label>
+      <label class="f">ביקורת שלילית = דירוג עד
+        <select id="fMax"><option value="2">2 כוכבים</option><option value="3" selected>3 כוכבים</option><option value="4">4 כוכבים</option></select>
+      </label>
+    </div>
+    <div class="facts" id="facts"></div>
+  </section>
+
+  <section id="result" aria-live="polite"></section>
+
+  <section class="panel hidden" id="aiPanel" aria-label="סיכום AI">
+    <div class="row">
+      <h2 style="font-size:22px;flex:1">סיכום ב-AI</h2>
+      <button class="btn ghost" id="btnAi">סכם את הכאבים ב-Gemini</button>
+      <button class="btn ghost" id="btnCsv">הורד CSV</button>
+    </div>
+    <div class="status" id="aiStatus">משתמש במפתח Gemini שהוגדר ב-Leads Radar. הטקסט של הביקורות השליליות נשלח לגוגל.</div>
+    <div id="aiOut"></div>
+  </section>
+
+  <footer>מפת כאבים V1.00 · קוראת את נתוני Leads Radar באותו דפדפן, לקריאה בלבד — לא משנה בהם דבר. ביקורות שהושלמו כאן נשמרות בנפרד.</footer>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const OWN_KEY = 'pm_reviews'; // the only key this app writes
+const readJSON = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+
+/* ---------- pain themes ---------- */
+const THEMES = [
+  {id:'reach', name:'לא עונים ולא חוזרים', offer:'בוט שירות לקוחות באתר ובוואטסאפ + איסוף פרטים כשאין מענה',
+   re:/לא\s*(עונ|ענ|חזר|חוזר|זמינ)|אין\s*מענה|אין\s*מי\s*ש|טלפון|התקשר|צלצל|וואטסאפ|ווטסאפ|הודעה|מייל|השארתי|תא\s*קולי|לא\s*היה\s*עם\s*מי|no\s*answer|never\s*(called|answered)|call\s*back|unreachable|voicemail/i},
+  {id:'wait', name:'המתנה ואיחורים', offer:'מערכת זימון תורים עם תזכורות אוטומטיות',
+   re:/חיכי|המתנ|המתין|איחר|איחור|מאחר|שעה\s*וחצי|שעתיים|תור\b|תורים|עיכוב|מתעכב|לקח\s*(המון|הרבה)\s*זמן|waited|waiting|late|delay|slow/i},
+  {id:'attitude', name:'יחס ושירות', offer:'הדרכת צוות ב-AI לשירות + ניסוח מענה לביקורות',
+   re:/יחס|גס|חצו|זלזול|מזלזל|לא\s*נעים|לא\s*אדיב|עצבני|צעק|התנשא|אדישות|שירות\s*(גרוע|מחפיר|על\s*הפנים|נוראי)|rude|attitude|unfriendly|disrespect/i},
+  {id:'price', name:'מחיר והפתעות בחשבון', offer:'הצעות מחיר ומחירון שקוף שנשלחים אוטומטית',
+   re:/יקר|מחיר|מחירים|תשלום|שילמתי|חיוב|חייב|חשבונית|קבלה|עוקץ|עקיצ|גבו\s*ממני|הפתע|expensive|overpriced|price|charged|bill/i},
+  {id:'trust', name:'הבטחות שלא קוימו', offer:'CRM פשוט עם מעקב ותזכורות אוטומטיות ללקוח',
+   re:/הבטיח|הובטח|לא\s*הגיע|לא\s*הגיעו|ביטל|ביטלו|שקר|שיקר|לא\s*עמד|לא\s*עמדו|לא\s*קיים|הברזה|הבריז|promised|no\s*show|cancel|lied/i},
+  {id:'info', name:'מידע שגוי או חסר', offer:'עדכון כרטיס גוגל ובוט שעונה על שאלות נפוצות',
+   re:/שעות\s*(פתיחה|הפעילות)|היה\s*סגור|סגור\s*למרות|לא\s*מעודכ|מידע|לא\s*הסביר|לא\s*הסבירו|אתר|כתובת\s*(לא|שגוי)|wrong\s*(hours|info)|closed|website/i},
+  {id:'order', name:'הזמנות ומשלוחים', offer:'אוטומציה להזמנות ולעדכוני סטטוס ללקוח',
+   re:/הזמנ|משלוח|שליח|טעות\s*בהזמנה|חסר\s*ב|לא\s*קיבלתי|delivery|order|missing/i},
+  {id:'quality', name:'איכות העבודה', offer:null,
+   re:/לא\s*תיקנ|לא\s*תוקן|שוב\s*(תקלה|התקלקל)|גרוע|חובבנ|לא\s*מקצוע|הרסו|נהרס|טעם|קר\b|מלוכלך|ניקיון|poor\s*quality|unprofessional|dirty|cold|bad\s*food/i}
+];
+const OTHER = {id:'other', name:'תלונות שלא סווגו', offer:null};
+
+/* ---------- state ---------- */
+let biz = [];            // normalized businesses
+let source = '';
+let lastRows = [];       // negative reviews after filters, for CSV/AI
+
+function cityOf(b){
+  const p = String(b.address||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if (p.length && /ישראל|israel/i.test(p[p.length-1])) p.pop();
+  return p.length > 1 ? p[p.length-1].replace(/\d{5,7}/g,'').trim() : (p[0]||'');
+}
+function normalize(list){
+  const extra = readJSON(OWN_KEY, {});
+  return (Array.isArray(list)?list:[]).filter(b=>b && b.id).map(b=>{
+    const own = extra[b.id];
+    const rv = (b.rev && Array.isArray(b.rev.list) && b.rev.list.length) ? b.rev.list : (own && own.list) || [];
+    return { id:b.id, name:b.name||'', address:b.address||'', city:cityOf(b), type:b.type||'לא ידוע',
+             maps:b.maps||'', rating:b.rating||0, reviews:b.reviews||0, list:rv,
+             hasReviews: !!rv.length, fetchedHere: !!(own && own.list && !(b.rev && b.rev.list && b.rev.list.length)) };
+  });
+}
+function note(html, kind='warn'){ $('notes').insertAdjacentHTML('beforeend', `<div class="note ${kind}">${html}</div>`); }
+function clearNotes(){ $('notes').innerHTML=''; }
+
+/* ---------- load ---------- */
+function loadFromRadar(){
+  clearNotes();
+  const r = readJSON('lr_results', null);
+  if (!r || !r.length){
+    $('status').textContent = 'לא נמצאו תוצאות סריקה של Leads Radar בדפדפן הזה.';
+    note('פתח את <a href="../leads-radar/" target="_blank" rel="noopener">Leads Radar</a> באותו דפדפן, הרץ סריקה ולחץ «🔬 נתח את כל העסקים» עם «כלול ניתוח ביקורות גוגל» מסומן. אחר כך חזור לכאן ולחץ «טען מ-Leads Radar». אפשר גם לייבא קובץ JSON שיוצא משם.');
+    return;
+  }
+  source = 'Leads Radar (הדפדפן הזה)';
+  setData(r);
+}
+$('btnLoad').onclick = loadFromRadar;
+$('fileIn').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return; clearNotes();
+  try{
+    const j = JSON.parse(await f.text());
+    const arr = Array.isArray(j) ? j : (j.results || j.businesses || j.data || []);
+    if (!arr.length) throw new Error('לא נמצאה רשימת עסקים בקובץ');
+    source = 'קובץ: ' + f.name; setData(arr);
+  }catch(err){ $('status').textContent = 'הקובץ לא נקרא: ' + err.message; }
+  e.target.value='';
+};
+function setData(raw){
+  biz = normalize(raw);
+  const withRev = biz.filter(b=>b.hasReviews).length;
+  $('status').textContent = `נטענו ${biz.length} עסקים מתוך ${source}. ל-${withRev} מהם יש ביקורות.`;
+  if (withRev < biz.length) note(`ל-${biz.length-withRev} עסקים אין עדיין ביקורות. «השלם ביקורות חסרות» מושך אותן מגוגל — כל עסק הוא קריאת API בתשלום.`);
+  fillSelect('fCity', biz.map(b=>b.city), 'כל האזורים');
+  fillSelect('fType', biz.map(b=>b.type), 'כל סוגי העסקים');
+  $('filters').classList.remove('hidden'); $('aiPanel').classList.remove('hidden');
+  render();
+}
+function fillSelect(id, values, allLabel){
+  const counts = {}; values.filter(Boolean).forEach(v=>counts[v]=(counts[v]||0)+1);
+  const opts = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  $(id).innerHTML = `<option value="">${allLabel}</option>` + opts.map(([v,n])=>`<option value="${esc(v)}">${esc(v)} (${n})</option>`).join('');
+}
+['fCity','fType','fMax'].forEach(id=>$(id).onchange=render);
+
+/* ---------- classify + render ---------- */
+function classify(text){
+  const hits = THEMES.filter(t=>t.re.test(text||'')).map(t=>t.id);
+  return hits.length ? hits : ['other'];
+}
+function render(){
+  const city=$('fCity').value, type=$('fType').value, max=+$('fMax').value;
+  const set = biz.filter(b=>(!city||b.city===city)&&(!type||b.type===type));
+  const rows = [];
+  set.forEach(b=>b.list.forEach(r=>{ if (r && r.rating && r.rating<=max && (r.text||'').trim()) rows.push({b, r, themes:classify(r.text)}); }));
+  lastRows = rows;
+  const allRev = set.reduce((n,b)=>n+b.list.length,0);
+  $('facts').innerHTML = `
+    <div><b>${set.length}</b>עסקים בסינון</div>
+    <div><b>${set.filter(b=>b.hasReviews).length}</b>עם ביקורות</div>
+    <div><b>${allRev}</b>ביקורות נקראו</div>
+    <div><b>${rows.length}</b>ביקורות שליליות</div>`;
+  if (!rows.length){
+    $('result').innerHTML = `<div class="panel">${allRev ? 'אין ביקורות שליליות בסינון הזה. נסה להרחיב את הדירוג או לבחור אזור אחר.' : 'אין עדיין ביקורות לעסקים בסינון הזה. לחץ «השלם ביקורות חסרות» או נתח אותם ב-Leads Radar.'}</div>`;
+    return;
+  }
+  const groups = [...THEMES, OTHER].map(t=>{
+    const items = rows.filter(x=>x.themes.includes(t.id));
+    const bizSet = new Map(); items.forEach(x=>bizSet.set(x.b.id, x.b));
+    return {t, items, biz:[...bizSet.values()]};
+  }).filter(g=>g.items.length).sort((a,b)=>(a.t.id==='other')-(b.t.id==='other') || b.biz.length-a.biz.length || b.items.length-a.items.length);
+  const top = Math.max(...groups.map(g=>g.biz.length));
+  $('result').innerHTML = `<h2 style="font-size:24px;margin:6px 0 10px">הכאבים, לפי מספר העסקים שהלקוחות שלהם מתלוננים עליהם</h2><div class="ladder">` +
+    groups.map((g,i)=>{
+      const pct = Math.round(g.biz.length / Math.max(1,set.filter(b=>b.hasReviews).length) * 100);
+      const shown = g.items.slice(0,6);
+      return `<details class="pain"${i===0?' open':''}>
+        <summary><span class="pname">${esc(g.t.name)}</span>
+          <span class="pcount">${g.biz.length} עסקים · ${g.items.length} ביקורות · ${pct}% מהעסקים עם ביקורות</span>
+          <span class="bar" aria-hidden="true"><i style="width:${Math.max(4,Math.round(g.biz.length/top*100))}%"></i></span></summary>
+        <div class="pbody">
+          <div class="offer${g.t.offer?'':' none'}">${g.t.offer ? 'מה אפשר להציע לעסקים האלה: <b>'+esc(g.t.offer)+'</b>' : 'אין לכאב הזה פתרון ישיר מהשירותים שלך — אבל הוא טוב כפתיח לשיחה על מוניטין.'}</div>
+          <div class="bizlist">העסקים: ${g.biz.slice(0,12).map(b=>b.maps?`<a href="${esc(b.maps)}" target="_blank" rel="noopener">${esc(b.name)}</a>`:esc(b.name)).join(', ')}${g.biz.length>12?` ועוד ${g.biz.length-12}`:''}</div>
+          ${shown.map(x=>`<div class="quote">${esc((x.r.text||'').slice(0,300))}${(x.r.text||'').length>300?'…':''}
+            <div class="meta">${'★'.repeat(Math.round(x.r.rating))} · ${x.b.maps?`<a href="${esc(x.b.maps)}" target="_blank" rel="noopener">${esc(x.b.name)}</a>`:esc(x.b.name)}${x.r.when?' · '+esc(x.r.when):''}</div></div>`).join('')}
+          ${g.items.length>shown.length?`<div class="more">ועוד ${g.items.length-shown.length} ביקורות בנושא הזה — כולן ב-CSV.</div>`:''}
+        </div></details>`;
+    }).join('') + `</div>`;
+}
+
+/* ---------- fill missing reviews (paid Places calls) ---------- */
+function radarSettings(){
+  const s = readJSON('lr_settings', {}) || {};
+  let key = s.key || '';
+  if (!key){ try{ const k = localStorage.getItem('lr_apikey'); key = k ? (k.startsWith('"') ? JSON.parse(k) : k) : ''; }catch(e){} }
+  return { key, gemini: s.gemini || '', model: s.model || 'gemini-2.5-flash' };
+}
+function loadMaps(key){
+  return new Promise((res,rej)=>{
+    if (window.google && google.maps && google.maps.importLibrary) return res();
+    window.__pmReady = ()=>res();
+    window.gm_authFailure = ()=>rej(new Error('המפתח נדחה על ידי גוגל (ייתכן שהוא מוגבל לכתובת אחרת)'));
+    const s = document.createElement('script'); s.async = true;
+    s.src = 'https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&v=weekly&libraries=places&language=iw&region=IL&loading=async&callback=__pmReady';
+    s.onerror = ()=>rej(new Error('טעינת גוגל מפות נכשלה')); document.head.appendChild(s);
+    setTimeout(()=>rej(new Error('גוגל מפות לא נטען תוך 20 שניות')), 20000);
+  });
+}
+$('btnFill').onclick = async ()=>{
+  clearNotes();
+  if (!biz.length){ note('קודם טוענים נתונים.'); return; }
+  const missing = biz.filter(b=>!b.hasReviews);
+  if (!missing.length){ note('לכל העסקים כבר יש ביקורות.', 'ok'); return; }
+  const n = Math.min(missing.length, Math.max(1, +$('fillMax').value || 20));
+  const {key} = radarSettings();
+  if (!key){ note('לא נמצא מפתח Google Maps. הוא נשמר ב-⚙️ הגדרות של <a href="../leads-radar/" target="_blank" rel="noopener">Leads Radar</a> באותו דפדפן.','bad'); return; }
+  if (!confirm(`יימשכו ביקורות ל-${n} עסקים. כל עסק הוא קריאת Place Details עם ביקורות, שגוגל מחייבת עליה. להמשיך?`)) return;
+  const btn=$('btnFill'); btn.disabled=true;
+  try{
+    await loadMaps(key);
+    const {Place} = await google.maps.importLibrary('places');
+    const store = readJSON(OWN_KEY, {});
+    let ok=0, fail=0;
+    for (let i=0;i<n;i++){
+      const b = missing[i]; $('status').textContent = `מושך ביקורות ${i+1}/${n}: ${b.name}`;
+      try{
+        const p = new Place({id:b.id}); await p.fetchFields({fields:['reviews']});
+        const list = (p.reviews||[]).map(x=>({rating:x.rating, text:(x.text||'').slice(0,400), when:x.relativePublishTimeDescription||'',
+          time:x.publishTime?new Date(x.publishTime).getTime():0}));
+        store[b.id] = {list, at:Date.now()}; b.list = list; b.hasReviews = !!list.length; b.fetchedHere = true; ok++;
+      }catch(e){ fail++; }
+    }
+    try{ localStorage.setItem(OWN_KEY, JSON.stringify(store)); }catch(e){ note('לא הצלחתי לשמור בדפדפן: '+esc(e.message),'bad'); }
+    $('status').textContent = `הושלמו ביקורות ל-${ok} עסקים${fail?`, ${fail} נכשלו`:''}.`;
+    note(`נשמר בנפרד ב-${OWN_KEY}. הנתונים של Leads Radar לא שונו.`, 'ok');
+    render();
+  }catch(e){ note('לא הצלחתי למשוך ביקורות: '+esc(e.message),'bad'); $('status').textContent=''; }
+  btn.disabled=false;
+};
+
+/* ---------- CSV ---------- */
+$('btnCsv').onclick = ()=>{
+  if (!lastRows.length){ $('aiStatus').textContent='אין ביקורות שליליות לייצוא בסינון הזה.'; return; }
+  const name = id => ([...THEMES,OTHER].find(t=>t.id===id)||{}).name;
+  const q = v => '"'+String(v??'').replace(/"/g,'""')+'"';
+  const lines = [['עסק','עיר','סוג','דירוג','נושאים','ביקורת','מתי','גוגל מפות'].map(q).join(',')]
+    .concat(lastRows.map(x=>[x.b.name,x.b.city,x.b.type,x.r.rating,x.themes.map(name).join(' | '),x.r.text,x.r.when,x.b.maps].map(q).join(',')));
+  const blob = new Blob(['\ufeff'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'pain-map-'+new Date().toISOString().slice(0,10)+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+};
+
+/* ---------- Gemini summary ---------- */
+$('btnAi').onclick = async ()=>{
+  const {gemini, model} = radarSettings();
+  if (!gemini){ $('aiStatus').innerHTML='לא נמצא מפתח Gemini. הוא מוגדר ב-⚙️ הגדרות של <a href="../leads-radar/" target="_blank" rel="noopener">Leads Radar</a>.'; return; }
+  if (!lastRows.length){ $('aiStatus').textContent='אין ביקורות שליליות לסכם בסינון הזה.'; return; }
+  const sample = lastRows.slice(0,150).map((x,i)=>`${i+1}. [${x.b.type} · ${x.b.city} · ${x.r.rating}★] ${(x.r.text||'').replace(/\s+/g,' ').slice(0,300)}`).join('\n');
+  const prompt = `אלה ביקורות שליליות מגוגל על עסקים באזור מסוים בישראל.\n${sample}\n\nכתוב בעברית, בקצרה:\n1. חמשת הכאבים החוזרים של הלקוחות, מהנפוץ לנדיר, עם מספר הביקורות לכל אחד וציטוט קצר אחד.\n2. לכל כאב: איזה פתרון של אוטומציה או AI יכול לעזור לעסק עצמו.\nאל תמציא נתונים שלא מופיעים בביקורות.`;
+  const btn=$('btnAi'); btn.disabled=true; $('aiStatus').textContent='שולח ל-Gemini…'; $('aiOut').textContent='';
+  try{
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent?key='+encodeURIComponent(gemini),
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}], generationConfig:{temperature:0.3}})});
+    const j = await r.json(); if (j.error) throw new Error(j.error.message);
+    $('aiOut').textContent = (j.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join('') || 'לא התקבלה תשובה.';
+    $('aiStatus').textContent = `סוכמו ${Math.min(150,lastRows.length)} ביקורות במודל ${model}.`;
+  }catch(e){ $('aiStatus').textContent = 'Gemini החזיר שגיאה: '+e.message; }
+  btn.disabled=false;
+};
+
+/* ---------- start ---------- */
+if (readJSON('lr_results', null)) loadFromRadar();
+</script>
+</body>
+</html>
